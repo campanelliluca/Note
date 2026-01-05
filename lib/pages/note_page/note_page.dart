@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:convert'; // Serve per trasformare i dati in formato JSON (testo)
-import 'package:shared_preferences/shared_preferences.dart'; // Serve per salvare sul telefono
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:task_list/models/nota.dart'; 
 import 'package:task_list/widgets/custom_app_bar.dart';
@@ -17,34 +17,25 @@ class NotePage extends StatefulWidget {
 }
 
 class _NotePageState extends State<NotePage> {
-  // Iniziamo con una lista vuota. Se ci sono dati, li caricheremo dopo.
-  List<Nota> mieNote = []; 
+  List<Nota> mieNote = [];
   Nota? notaSelezionata;
 
-  // initState viene eseguito UNA VOLTA sola, quando apri questa pagina.
   @override
   void initState() {
     super.initState();
-    // Chiamiamo la funzione per leggere i dati dal disco
     _caricaNote(); 
   }
 
-  // --- FUNZIONE 1: CARICARE I DATI ---
   Future<void> _caricaNote() async {
-    // 1. Otteniamo l'accesso alla memoria del telefono
     final prefs = await SharedPreferences.getInstance();
-    
-    // 2. Cerchiamo se esiste una stringa salvata con la chiave 'mie_note_key'
     final String? noteJson = prefs.getString('mie_note_key');
 
     if (noteJson != null) {
-      // Se abbiamo trovato dei dati, dobbiamo aggiornare l'interfaccia
       setState(() {
-        // 3. Decodifichiamo: Da Testo JSON -> Lista di Mappe -> Lista di Note
         Iterable l = json.decode(noteJson);
         mieNote = List<Nota>.from(l.map((model) => Nota.fromJson(model)));
-        
-        // Se la lista non è vuota, selezioniamo la prima nota per mostrarla a destra
+        // Se siamo su tablet/PC, selezioniamo la prima nota. 
+        // Su mobile non serve selezionarla subito.
         if (mieNote.isNotEmpty) {
           notaSelezionata = mieNote[0];
         }
@@ -52,19 +43,12 @@ class _NotePageState extends State<NotePage> {
     }
   }
 
-  // --- FUNZIONE 2: SALVARE I DATI ---
   Future<void> _salvaNote() async {
     final prefs = await SharedPreferences.getInstance();
-    
-    // 1. Trasformiamo la Lista di Note in una lunga stringa di testo (JSON)
-    // Usiamo il metodo .toJson() che abbiamo creato nel Passo 2
     final String encodedData = json.encode(mieNote.map((n) => n.toJson()).toList());
-    
-    // 2. Scriviamo questa stringa sul disco sovrascrivendo quella vecchia
     await prefs.setString('mie_note_key', encodedData);
   }
 
-  // --- LOGICA DI AGGIUNTA / MODIFICA ---
   void _apriDialogNota({Nota? nota}) {
     showDialog(
       context: context,
@@ -73,16 +57,13 @@ class _NotePageState extends State<NotePage> {
         onSave: (notaSalvata) {
           setState(() {
             if (nota == null) {
-              // È una nuova nota: la aggiungiamo alla lista
               mieNote.add(notaSalvata);
               notaSelezionata = notaSalvata;
             } else {
-              // È una modifica: aggiorniamo i campi della nota esistente
               nota.titolo = notaSalvata.titolo;
               nota.contenuto = notaSalvata.contenuto;
               nota.data = notaSalvata.data;
             }
-            // IMPORTANTE: Dopo aver modificato la lista, salviamo tutto!
             _salvaNote(); 
           });
         },
@@ -90,7 +71,6 @@ class _NotePageState extends State<NotePage> {
     );
   }
 
-  // --- LOGICA DI ELIMINAZIONE ---
   void _confermaEliminazione(int index) {
     showDialog(
       context: context,
@@ -104,17 +84,12 @@ class _NotePageState extends State<NotePage> {
             onPressed: () {
               setState(() {
                 Nota daEliminare = mieNote[index];
-                // Rimuoviamo la nota dalla lista
                 mieNote.removeAt(index);
-                
-                // Gestiamo cosa mostrare nel pannello di destra
                 if (mieNote.isEmpty) {
                   notaSelezionata = null;
                 } else if (notaSelezionata == daEliminare) {
                   notaSelezionata = mieNote.isNotEmpty ? mieNote[0] : null;
                 }
-                
-                // IMPORTANTE: Dopo aver eliminato, salviamo la nuova lista!
                 _salvaNote(); 
               });
               Navigator.pop(context);
@@ -126,19 +101,74 @@ class _NotePageState extends State<NotePage> {
     );
   }
 
+  // --- NUOVA FUNZIONE: Navigazione Mobile ---
+  // Quando sei sul telefono e clicchi una nota, apriamo una nuova schermata
+  void _navigaAlDettaglioMobile(Nota nota) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: Text(nota.titolo)),
+          // Riusiamo il widget che abbiamo già creato!
+          body: NoteDetailView(
+            nota: nota,
+            onEdit: () {
+              Navigator.pop(context); // Chiude la pagina dettaglio
+              _apriDialogNota(nota: nota); // Apre il dialogo modifica
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 1. MISURIAMO LO SCHERMO
+    // Se la larghezza è meno di 600 pixel, siamo su un telefono
+    final bool isMobile = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       appBar: const CustomAppBar(title: 'Le mie Note'),
       drawer: const CustomDrawer(),
-      body: Row(
-        children: [
-          // COLONNA SINISTRA: LISTA
-          Expanded(
-            flex: 1,
-            child: Container(
-              color: Colors.grey[100],
-              child: mieNote.isEmpty
+      // 2. DECIDIAMO QUALE LAYOUT MOSTRARE
+      body: isMobile 
+        ? _buildMobileLayout() // Layout Telefono (Solo Lista)
+        : _buildTabletLayout(), // Layout Tablet/PC (Diviso in due)
+      
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _apriDialogNota(),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  // --- LAYOUT TELEFONO (Lista a tutto schermo) ---
+  Widget _buildMobileLayout() {
+    if (mieNote.isEmpty) {
+      return const Center(child: Text("Nessuna nota salvata"));
+    }
+    return ListView.builder(
+      itemCount: mieNote.length,
+      itemBuilder: (context, index) => NoteListTile(
+        nota: mieNote[index],
+        isSelected: false, // Su mobile non evidenziamo la selezione nella lista
+        onTap: () => _navigaAlDettaglioMobile(mieNote[index]), // Apre nuova pagina
+        onEdit: () => _apriDialogNota(nota: mieNote[index]),
+        onDelete: () => _confermaEliminazione(index),
+      ),
+    );
+  }
+
+  // --- LAYOUT TABLET/PC (Quello che avevi prima) ---
+  Widget _buildTabletLayout() {
+    return Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: Colors.grey[100],
+            child: mieNote.isEmpty
                 ? const Center(child: Text("Nessuna nota salvata"))
                 : ListView.builder(
                     itemCount: mieNote.length,
@@ -150,25 +180,19 @@ class _NotePageState extends State<NotePage> {
                       onDelete: () => _confermaEliminazione(index),
                     ),
                   ),
-            ),
           ),
-          const VerticalDivider(width: 1),
-          // COLONNA DESTRA: DETTAGLIO
-          Expanded(
-            flex: 2,
-            child: notaSelezionata == null
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(
+          flex: 2,
+          child: notaSelezionata == null
               ? const Center(child: Text("Seleziona o crea una nota"))
               : NoteDetailView(
                   nota: notaSelezionata!,
                   onEdit: () => _apriDialogNota(nota: notaSelezionata),
                 ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _apriDialogNota(),
-        child: const Icon(Icons.add),
-      ),
+        ),
+      ],
     );
   }
 }
