@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-// Import del modello e dei widget
+import 'dart:convert'; // Serve per trasformare i dati in formato JSON (testo)
+import 'package:shared_preferences/shared_preferences.dart'; // Serve per salvare sul telefono
+
 import 'package:task_list/models/nota.dart'; 
 import 'package:task_list/widgets/custom_app_bar.dart';
 import 'package:task_list/widgets/custom_drawer.dart';
@@ -15,20 +17,54 @@ class NotePage extends StatefulWidget {
 }
 
 class _NotePageState extends State<NotePage> {
-  final List<Nota> mieNote = [
-    Nota(titolo: 'Fare la spesa', contenuto: 'Latte, pane, uova e farina.', data: '02/01/2026'),
-    Nota(titolo: 'Corso Flutter', contenuto: 'Studiare il refactoring.', data: '02/01/2026'),
-  ];
+  // Iniziamo con una lista vuota. Se ci sono dati, li caricheremo dopo.
+  List<Nota> mieNote = []; 
+  Nota? notaSelezionata;
 
-  late Nota notaSelezionata;
-
+  // initState viene eseguito UNA VOLTA sola, quando apri questa pagina.
   @override
   void initState() {
     super.initState();
-    notaSelezionata = mieNote[0];
+    // Chiamiamo la funzione per leggere i dati dal disco
+    _caricaNote(); 
   }
 
-  // --- FUNZIONE PER IL DIALOGO (Aggiunta/Modifica) ---
+  // --- FUNZIONE 1: CARICARE I DATI ---
+  Future<void> _caricaNote() async {
+    // 1. Otteniamo l'accesso alla memoria del telefono
+    final prefs = await SharedPreferences.getInstance();
+    
+    // 2. Cerchiamo se esiste una stringa salvata con la chiave 'mie_note_key'
+    final String? noteJson = prefs.getString('mie_note_key');
+
+    if (noteJson != null) {
+      // Se abbiamo trovato dei dati, dobbiamo aggiornare l'interfaccia
+      setState(() {
+        // 3. Decodifichiamo: Da Testo JSON -> Lista di Mappe -> Lista di Note
+        Iterable l = json.decode(noteJson);
+        mieNote = List<Nota>.from(l.map((model) => Nota.fromJson(model)));
+        
+        // Se la lista non è vuota, selezioniamo la prima nota per mostrarla a destra
+        if (mieNote.isNotEmpty) {
+          notaSelezionata = mieNote[0];
+        }
+      });
+    }
+  }
+
+  // --- FUNZIONE 2: SALVARE I DATI ---
+  Future<void> _salvaNote() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // 1. Trasformiamo la Lista di Note in una lunga stringa di testo (JSON)
+    // Usiamo il metodo .toJson() che abbiamo creato nel Passo 2
+    final String encodedData = json.encode(mieNote.map((n) => n.toJson()).toList());
+    
+    // 2. Scriviamo questa stringa sul disco sovrascrivendo quella vecchia
+    await prefs.setString('mie_note_key', encodedData);
+  }
+
+  // --- LOGICA DI AGGIUNTA / MODIFICA ---
   void _apriDialogNota({Nota? nota}) {
     showDialog(
       context: context,
@@ -37,20 +73,24 @@ class _NotePageState extends State<NotePage> {
         onSave: (notaSalvata) {
           setState(() {
             if (nota == null) {
+              // È una nuova nota: la aggiungiamo alla lista
               mieNote.add(notaSalvata);
               notaSelezionata = notaSalvata;
             } else {
+              // È una modifica: aggiorniamo i campi della nota esistente
               nota.titolo = notaSalvata.titolo;
               nota.contenuto = notaSalvata.contenuto;
               nota.data = notaSalvata.data;
             }
+            // IMPORTANTE: Dopo aver modificato la lista, salviamo tutto!
+            _salvaNote(); 
           });
         },
       ),
     );
   }
 
-  // --- FUNZIONE PER ELIMINARE ---
+  // --- LOGICA DI ELIMINAZIONE ---
   void _confermaEliminazione(int index) {
     showDialog(
       context: context,
@@ -64,12 +104,18 @@ class _NotePageState extends State<NotePage> {
             onPressed: () {
               setState(() {
                 Nota daEliminare = mieNote[index];
+                // Rimuoviamo la nota dalla lista
                 mieNote.removeAt(index);
+                
+                // Gestiamo cosa mostrare nel pannello di destra
                 if (mieNote.isEmpty) {
-                  notaSelezionata = Nota(titolo: 'Nessuna nota', contenuto: 'Crea una nota con +', data: '');
+                  notaSelezionata = null;
                 } else if (notaSelezionata == daEliminare) {
-                  notaSelezionata = mieNote[0];
+                  notaSelezionata = mieNote.isNotEmpty ? mieNote[0] : null;
                 }
+                
+                // IMPORTANTE: Dopo aver eliminato, salviamo la nuova lista!
+                _salvaNote(); 
               });
               Navigator.pop(context);
             },
@@ -87,29 +133,35 @@ class _NotePageState extends State<NotePage> {
       drawer: const CustomDrawer(),
       body: Row(
         children: [
+          // COLONNA SINISTRA: LISTA
           Expanded(
             flex: 1,
             child: Container(
               color: Colors.grey[100],
-              child: ListView.builder(
-                itemCount: mieNote.length,
-                itemBuilder: (context, index) => NoteListTile(
-                  nota: mieNote[index],
-                  isSelected: notaSelezionata == mieNote[index],
-                  onTap: () => setState(() => notaSelezionata = mieNote[index]),
-                  onEdit: () => _apriDialogNota(nota: mieNote[index]),
-                  onDelete: () => _confermaEliminazione(index), // Ora è definita!
-                ),
-              ),
+              child: mieNote.isEmpty
+                ? const Center(child: Text("Nessuna nota salvata"))
+                : ListView.builder(
+                    itemCount: mieNote.length,
+                    itemBuilder: (context, index) => NoteListTile(
+                      nota: mieNote[index],
+                      isSelected: notaSelezionata == mieNote[index],
+                      onTap: () => setState(() => notaSelezionata = mieNote[index]),
+                      onEdit: () => _apriDialogNota(nota: mieNote[index]),
+                      onDelete: () => _confermaEliminazione(index),
+                    ),
+                  ),
             ),
           ),
           const VerticalDivider(width: 1),
+          // COLONNA DESTRA: DETTAGLIO
           Expanded(
             flex: 2,
-            child: NoteDetailView(
-              nota: notaSelezionata,
-              onEdit: () => _apriDialogNota(nota: notaSelezionata),
-            ),
+            child: notaSelezionata == null
+              ? const Center(child: Text("Seleziona o crea una nota"))
+              : NoteDetailView(
+                  nota: notaSelezionata!,
+                  onEdit: () => _apriDialogNota(nota: notaSelezionata),
+                ),
           ),
         ],
       ),
