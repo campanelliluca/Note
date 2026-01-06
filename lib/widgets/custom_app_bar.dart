@@ -29,6 +29,10 @@ class _CustomAppBarState extends State<CustomAppBar> {
 
   @override
   Widget build(BuildContext context) {
+
+    // Recuperiamo l'ordinamento attuale per spuntare la voce attiva nel menu
+    final currentSort = context.select<NoteProvider, TipoOrdinamento>((p) => p.ordinamento);
+
     return AppBar(
       // --- IL TITOLO CAMBIA DINAMICAMENTE ---
       title: _isSearching
@@ -49,6 +53,47 @@ class _CustomAppBarState extends State<CustomAppBar> {
           : Text(widget.title), // Se non cerco, mostro il titolo normale
       
       actions: [
+        // --- NUOVO: BOTTONE ORDINAMENTO ---
+        // Lo mostriamo solo se NON stiamo cercando (per pulizia), 
+        // oppure possiamo lasciarlo sempre. Lasciamolo sempre per ora.
+        if (!_isSearching) 
+          PopupMenuButton<TipoOrdinamento>(
+            icon: const Icon(Icons.sort), // Icona con le righette
+            tooltip: 'Ordina note',
+            initialValue: currentSort, // Evidenzia la scelta attuale
+            onSelected: (TipoOrdinamento nuovoOrdine) {
+              // Chiama il provider e cambia l'ordine
+              context.read<NoteProvider>().cambiaOrdinamento(nuovoOrdine);
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<TipoOrdinamento>>[
+              const PopupMenuItem(
+                value: TipoOrdinamento.dataRecente,
+                child: Row(
+                  children: [Icon(Icons.arrow_downward, size: 18), SizedBox(width: 8), Text('Più recenti')],
+                ),
+              ),
+              const PopupMenuItem(
+                value: TipoOrdinamento.dataVecchia,
+                child: Row(
+                  children: [Icon(Icons.arrow_upward, size: 18), SizedBox(width: 8), Text('Più vecchie')],
+                ),
+              ),
+              const PopupMenuDivider(), // Una riga divisoria estetica
+              const PopupMenuItem(
+                value: TipoOrdinamento.alfabeticoAZ,
+                child: Row(
+                  children: [Icon(Icons.sort_by_alpha, size: 18), SizedBox(width: 8), Text('A - Z')],
+                ),
+              ),
+              const PopupMenuItem(
+                value: TipoOrdinamento.alfabeticoZA,
+                child: Row(
+                  children: [Icon(Icons.sort_by_alpha, size: 18), SizedBox(width: 8), Text('Z - A')],
+                ),
+              ),
+            ],
+          ),
+          
         // --- IL BOTTONE A DESTRA ---
         IconButton(
           // L'icona cambia: Lente se chiusa, Croce se aperta

@@ -1,41 +1,80 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:task_list/models/nota.dart';
 import 'package:task_list/services/note_service.dart';
 
+// --- NUOVO: Definiamo i tipi di ordinamento possibili ---
+enum TipoOrdinamento {
+  dataRecente,  // Dal più nuovo al più vecchio (Default)
+  dataVecchia,  // Dal più vecchio al più nuovo
+  alfabeticoAZ, // A -> Z
+  alfabeticoZA  // Z -> A
+}
 class NoteProvider extends ChangeNotifier {
   final NoteService _noteService = NoteService();
   
   List<Nota> _note = [];
   Nota? _notaSelezionata;
 
-// --- NUOVO: Variabile per memorizzare cosa sta scrivendo l'utente ---
+  // Variabile per memorizzare cosa sta scrivendo l'utente ---
   String _testoRicerca = "";
 
-  // Variabili per memorizzare temporaneamente cosa abbiamo cancellato
-  Nota? _ultimaNotaEliminata;     // Qui salviamo la nota appena cancellata
-  int? _ultimoIndiceEliminato;    // Qui salviamo la sua posizione (es. era la 3° nota)
+  // Variabile per l'ordinamento (Default: Più recenti in alto) ---
+  TipoOrdinamento _ordinamento = TipoOrdinamento.dataRecente;
+  // Getter per sapere l'ordinamento attuale (servirà alla UI per colorare il bottone)
+  TipoOrdinamento get ordinamento => _ordinamento;
+
+
 
   // Getter per sapere se c'è una nota da ripristinare
   // --- MODIFICATO: Getter per la lista delle note ---
   // Non restituiamo più direttamente "_note", ma una lista calcolata al volo.
   // La chiamiamo "noteFiltrate" per chiarezza.
   List<Nota> get noteFiltrate {
-    // 1. Se la casella di ricerca è vuota, restituiamo tutto come prima.
+    // 1. Prima FILTRIAMO (come abbiamo fatto nel passo precedente)
+    List<Nota> risultato;
     if (_testoRicerca.isEmpty) {
-      return _note;
-    } 
-    // 2. Se c'è scritto qualcosa, filtriamo la lista.
-    else {
-      return _note.where((nota) {
-        // Convertiamo tutto in minuscolo per trovare "Latte" anche se cerco "latte"
+      risultato = [..._note]; // Creiamo una copia della lista per non toccare l'originale
+    } else {
+      risultato = _note.where((nota) {
         final titoloLower = nota.titolo.toLowerCase();
         final contenutoLower = nota.contenuto.toLowerCase();
         final searchLower = _testoRicerca.toLowerCase();
-
-        // La nota passa il filtro se il testo cercato è nel titolo O nel contenuto
         return titoloLower.contains(searchLower) || contenutoLower.contains(searchLower);
       }).toList();
     }
+
+    // 2. Poi ORDINIAMO la lista filtrata
+    risultato.sort((a, b) {
+      switch (_ordinamento) {
+        case TipoOrdinamento.alfabeticoAZ:
+          // Confronto stringhe standard (case insensitive)
+          return a.titolo.toLowerCase().compareTo(b.titolo.toLowerCase());
+          
+        case TipoOrdinamento.alfabeticoZA:
+          // Al contrario (b compare a)
+          return b.titolo.toLowerCase().compareTo(a.titolo.toLowerCase());
+          
+        case TipoOrdinamento.dataVecchia:
+          // Usiamo la dataCreazione se c'è, altrimenti proviamo a parsare la stringa data
+          DateTime dataA = a.dataCreazione ?? DateFormat('dd/MM/yyyy').parse(a.data);
+          DateTime dataB = b.dataCreazione ?? DateFormat('dd/MM/yyyy').parse(b.data);
+          return dataA.compareTo(dataB); // A < B (Vecchio -> Nuovo)
+          
+        case TipoOrdinamento.dataRecente:
+          DateTime dataA = a.dataCreazione ?? DateFormat('dd/MM/yyyy').parse(a.data);
+          DateTime dataB = b.dataCreazione ?? DateFormat('dd/MM/yyyy').parse(b.data);
+          return dataB.compareTo(dataA); // B < A (Nuovo -> Vecchio)
+      }
+    });
+
+    return risultato;
+  }
+
+  // --- NUOVO: Funzione per cambiare ordinamento ---
+  void cambiaOrdinamento(TipoOrdinamento nuovoOrdinamento) {
+    _ordinamento = nuovoOrdinamento;
+    notifyListeners(); // Ridisegna la lista ordinata!
   }
 
   List<Nota> get note => _note;
@@ -85,6 +124,10 @@ class NoteProvider extends ChangeNotifier {
   }
 
   // --- ELIMINAZIONE ---
+    // Variabili per memorizzare temporaneamente cosa abbiamo cancellato
+  Nota? _ultimaNotaEliminata;     // Qui salviamo la nota appena cancellata
+  int? _ultimoIndiceEliminato;    // Qui salviamo la sua posizione (es. era la 3° nota)
+
   // --- NUOVO: Elimina cercando l'oggetto (Sicuro per la ricerca) ---
   void eliminaNotaByObject(Nota notaDaEliminare) {
     // Chiediamo alla lista completa: "A che numero si trova questa nota?"

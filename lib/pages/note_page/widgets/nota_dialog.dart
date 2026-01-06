@@ -212,6 +212,10 @@ class _NotaDialogState extends State<NotaDialog> {
                 contenuto: contenutoFinale,
                 data: DateFormat('dd/MM/yyyy').format(DateTime.now()),
                 isList: _isListMode, 
+                // Salviamo l'istante esatto!
+                // Se stiamo modificando una nota vecchia che aveva già una dataCreazione, la manteniamo.
+                // Altrimenti usiamo ADESSO.
+                dataCreazione: widget.notaEsistente?.dataCreazione ?? DateTime.now(),
               );
               
               widget.onSave(nota);
