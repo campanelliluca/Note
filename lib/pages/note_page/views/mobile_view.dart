@@ -21,15 +21,45 @@ class MobileView extends StatelessWidget {
     if (note.isEmpty) {
       return const Center(child: Text("Nessuna nota salvata"));
     }
+    
     return ListView.builder(
       itemCount: note.length,
-      itemBuilder: (context, index) => NoteListTile(
-        nota: note[index],
-        isSelected: false,
-        onTap: () => onTap(note[index]),
-        onEdit: () => onEdit(note[index]),
-        onDelete: () => onDelete(index),
-      ),
+      itemBuilder: (context, index) {
+        final notaCorrente = note[index];
+
+        // Dismissible è il widget che permette lo swipe
+        return Dismissible(
+          // KEY: Serve a Flutter per identificare univocamente questo widget nella lista.
+          // Usiamo il titolo + l'indice per creare un ID unico temporaneo.
+          key: ValueKey("${notaCorrente.titolo}_$index"),
+          
+          // DIRECTION: Permettiamo lo swipe solo da destra verso sinistra (End to Start)
+          direction: DismissDirection.endToStart,
+
+          // BACKGROUND: Cosa mostrare "sotto" la nota mentre trascini
+          background: Container(
+            color: Colors.red,
+            alignment: Alignment.centerRight, // Icona allineata a destra
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: const Icon(Icons.delete, color: Colors.white),
+          ),
+
+          // ONDISMISSED: Cosa succede quando lo swipe è completato
+          onDismissed: (direction) {
+            // Chiamiamo la funzione di eliminazione passata dal genitore
+            onDelete(index);
+          },
+
+          // CHILD: Il contenuto vero e proprio (la nostra vecchia NoteListTile)
+          child: NoteListTile(
+            nota: notaCorrente,
+            isSelected: false,
+            onTap: () => onTap(notaCorrente),
+            onEdit: () => onEdit(notaCorrente),
+            onDelete: () => onDelete(index),
+          ),
+        );
+      },
     );
   }
 }

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-// Import assoluto invece di quello relativo
 import 'package:task_list/models/nota.dart';
 
 class NoteListTile extends StatelessWidget {
   final Nota nota;
   final bool isSelected;
   final VoidCallback onTap;
-  final VoidCallback onDelete;
+  final VoidCallback onDelete; // Questo parametro c'è ancora, ma verrà usato dallo Swipe
   final VoidCallback onEdit;
 
   const NoteListTile({
@@ -28,18 +27,10 @@ class NoteListTile extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.bold)
       ),
       subtitle: Text(nota.data),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.blueGrey, size: 20),
-            onPressed: onEdit,
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-            onPressed: onDelete,
-          ),
-        ],
+      trailing: IconButton(
+        // Abbiamo tolto la Row e lasciato solo la matita
+        icon: const Icon(Icons.edit, color: Colors.blueGrey, size: 20),
+        onPressed: onEdit,
       ),
       onTap: onTap,
     );

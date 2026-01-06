@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // IMPORTANTE: Importiamo il pacchetto provider
-import 'package:task_list/pages/home_page/home_page.dart';
+import 'package:task_list/pages/note_page/note_page.dart';
 import 'package:task_list/providers/note_provider.dart'; // IMPORTANTE: Importiamo il nostro nuovo cervello
 
 void main() {
@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const MyHomePage(),
+      home: const NotePage(),
     );
   }
 }

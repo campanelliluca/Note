@@ -23,7 +23,7 @@ class TabletView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Colonna Sinistra (Lista)
+        // Colonna Sinistra (Lista con Swipe)
         Expanded(
           flex: 1,
           child: Container(
@@ -32,18 +32,38 @@ class TabletView extends StatelessWidget {
                 ? const Center(child: Text("Nessuna nota salvata"))
                 : ListView.builder(
                     itemCount: note.length,
-                    itemBuilder: (context, index) => NoteListTile(
-                      nota: note[index],
-                      isSelected: notaSelezionata == note[index],
-                      onTap: () => onTap(note[index]),
-                      onEdit: () => onEdit(note[index]),
-                      onDelete: () => onDelete(index),
-                    ),
+                    itemBuilder: (context, index) {
+                      final notaCorrente = note[index];
+
+                      // --- NUOVO: Aggiunto Dismissible anche qui ---
+                      return Dismissible(
+                        key: ValueKey("${notaCorrente.titolo}_$index"),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) {
+                          onDelete(index);
+                        },
+                        child: NoteListTile(
+                          nota: notaCorrente,
+                          isSelected: notaSelezionata == notaCorrente,
+                          onTap: () => onTap(notaCorrente),
+                          onEdit: () => onEdit(notaCorrente),
+                          onDelete: () => onDelete(index),
+                        ),
+                      );
+                    },
                   ),
           ),
         ),
+        
         const VerticalDivider(width: 1),
-        // Colonna Destra (Dettaglio)
+        
+        // Colonna Destra (Dettaglio - invariata)
         Expanded(
           flex: 2,
           child: notaSelezionata == null

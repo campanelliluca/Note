@@ -14,14 +14,39 @@ class NotePage extends StatefulWidget {
   @override
   State<NotePage> createState() => _NotePageState();
 }
-
 class _NotePageState extends State<NotePage> {
   
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<NoteProvider>().caricaNote();
+    
+    // Usiamo PostFrameCallback per eseguire codice DOPO che la grafica è stata disegnata
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 1. Carichiamo le note dal database
+      await context.read<NoteProvider>().caricaNote();
+      
+      // 2. Controllo di sicurezza: verifichiamo che la pagina sia ancora aperta
+      if (!mounted) return;
+
+      // 3. Recuperiamo le note per vedere se la lista è piena
+      final notePresenti = context.read<NoteProvider>().note;
+
+      // 4. Se ci sono note, mostriamo il suggerimento
+      if (notePresenti.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.blueGrey, // Colore diverso per distinguerlo dall'eliminazione
+            content: Row(
+              children: [
+                Icon(Icons.lightbulb_outline, color: Colors.yellow), // Icona lampadina
+                SizedBox(width: 10),
+                Expanded(child: Text("Suggerimento: Scorri a sinistra per eliminare")),
+              ],
+            ),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
     });
   }
 

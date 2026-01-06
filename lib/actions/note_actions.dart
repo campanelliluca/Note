@@ -7,29 +7,58 @@ import 'package:task_list/pages/note_page/widgets/note_detail_view.dart';
 
 class NoteActions {
   
+  // --- FUNZIONE DI SUPPORTO PER IL SUGGERIMENTO ---
+  static void _mostraSuggerimentoSwipe(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Colors.blueGrey,
+        content: Row(
+          children: [
+            Icon(Icons.lightbulb_outline, color: Colors.yellow),
+            SizedBox(width: 10),
+            Expanded(child: Text("Suggerimento: Scorri a sinistra per eliminare")),
+          ],
+        ),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
   static void apriDialogNota(BuildContext context, {Nota? nota}) {
     showDialog(
       context: context,
       builder: (ctx) => NotaDialog(
         notaEsistente: nota,
         onSave: (notaSalvata) {
+          // Controlliamo se stiamo creando una nuova nota (nota == null)
+          // o se ne stiamo modificando una esistente (nota != null)
+          bool isNuovaNota = (nota == null);
+
+          // 1. Salviamo
           context.read<NoteProvider>().salvaNota(notaSalvata, notaEsistente: nota);
+          
+          // 2. Se è una NUOVA nota, mostriamo il suggerimento per lo swipe!
+          if (isNuovaNota) {
+            // Un piccolo ritardo per dare tempo al dialog di chiudersi
+            Future.delayed(const Duration(milliseconds: 300), () {
+               // Verifica di sicurezza (se l'utente è ancora nella pagina)
+              if (context.mounted) {
+                _mostraSuggerimentoSwipe(context);
+              }
+            });
+          }
         },
       ),
     );
   }
 
-// --- NUOVO: Eliminazione Immediata (Senza Dialog) ---
   static void eliminaImmediatamente(BuildContext context, int index, String titolo) {
-    // 1. Eseguiamo l'eliminazione IMMEDIATA
-    // (Nota: il backup viene fatto automaticamente dentro il Provider)
     context.read<NoteProvider>().eliminaNota(index);
 
-    // 2. Mostriamo subito la SnackBar con Undo
-    ScaffoldMessenger.of(context).clearSnackBars(); // Pulisce eventuali messaggi precedenti per evitare code
+    ScaffoldMessenger.of(context).clearSnackBars(); 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        duration: const Duration(seconds: 10),
+        duration: const Duration(seconds: 4),
         content: Row(
           children: [
             Expanded(
