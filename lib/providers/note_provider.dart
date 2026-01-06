@@ -31,16 +31,27 @@ class NoteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+// --- AGGIUNTA O MODIFICA ---
   void salvaNota(Nota notaSalvata, {Nota? notaEsistente}) {
     if (notaEsistente == null) {
+      // È una nuova nota
       _note.add(notaSalvata);
-      _notaSelezionata = notaSalvata;
+      _notaSelezionata = notaSalvata; 
     } else {
+      // È una modifica: aggiorniamo i campi della nota esistente
       notaEsistente.titolo = notaSalvata.titolo;
       notaEsistente.contenuto = notaSalvata.contenuto;
       notaEsistente.data = notaSalvata.data;
+      
+      // --- ERRORE TROVATO E CORRETTO QUI SOTTO ---
+      // Prima mancava questa riga, quindi non cambiava mai tipo (da Testo a Lista e viceversa)
+      notaEsistente.isList = notaSalvata.isList; 
     }
+
+    // Salviamo su disco
     _noteService.salvaNote(_note);
+    
+    // Aggiorniamo la grafica
     notifyListeners();
   }
 
