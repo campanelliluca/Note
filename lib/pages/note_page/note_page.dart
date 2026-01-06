@@ -7,8 +7,8 @@ import 'package:task_list/models/nota.dart';
 import 'package:task_list/widgets/custom_app_bar.dart';
 import 'package:task_list/widgets/custom_drawer.dart';
 // Import dei Widget Specifici (che abbiamo appena creato)
-import 'package:task_list/pages/note_page/widgets/mobile_view.dart';
-import 'package:task_list/pages/note_page/widgets/tablet_view.dart';
+import 'package:task_list/pages/note_page/views/mobile_view.dart';
+import 'package:task_list/pages/note_page/views/tablet_view.dart';
 import 'package:task_list/pages/note_page/widgets/nota_dialog.dart';
 import 'package:task_list/pages/note_page/widgets/note_detail_view.dart';
 
