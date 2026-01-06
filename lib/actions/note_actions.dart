@@ -52,8 +52,11 @@ class NoteActions {
     );
   }
 
-  static void eliminaImmediatamente(BuildContext context, int index, String titolo) {
-    context.read<NoteProvider>().eliminaNota(index);
+  // CAMBIAMENTO: Ora accettiamo l'oggetto 'Nota' intero, non l'indice e il titolo separati
+  static void eliminaImmediatamente(BuildContext context, Nota nota) {
+    
+    // Usiamo il nuovo metodo sicuro del provider
+    context.read<NoteProvider>().eliminaNotaByObject(nota);
 
     ScaffoldMessenger.of(context).clearSnackBars(); 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -63,7 +66,8 @@ class NoteActions {
           children: [
             Expanded(
               child: Text(
-                'Nota "$titolo" eliminata',
+                // Usiamo il titolo preso direttamente dall'oggetto
+                'Nota "${nota.titolo}" eliminata',
                 overflow: TextOverflow.ellipsis,
               ),
             ),

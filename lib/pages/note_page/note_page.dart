@@ -56,7 +56,9 @@ class _NotePageState extends State<NotePage> {
 
     // Ascoltiamo i dati dal Provider
     final provider = context.watch<NoteProvider>();
-    final mieNote = provider.note;
+    // PRIMA ERA: final mieNote = provider.note;
+    // ORA DIVENTA:
+    final mieNote = provider.noteFiltrate;
     final notaSelezionata = provider.notaSelezionata;
 
     return Scaffold(
@@ -76,9 +78,10 @@ class _NotePageState extends State<NotePage> {
               onEdit: (nota) => NoteActions.apriDialogNota(context, nota: nota),
               
               // --- MODIFICA QUI ---
-              // Prima era: NoteActions.confermaEliminazione(...)
-              // Ora è:
-              onDelete: (index) => NoteActions.eliminaImmediatamente(context, index, mieNote[index].titolo),
+              // L'indice che riceviamo qui è quello della lista FILTRATA.
+              // Quindi mieNote[index] è esattamente la nota che stiamo guardando.
+              // La passiamo intera alla nuova funzione eliminaImmediatamente.
+              onDelete: (index) => NoteActions.eliminaImmediatamente(context, mieNote[index]),
             )
           : TabletView(
               note: mieNote,
@@ -86,8 +89,8 @@ class _NotePageState extends State<NotePage> {
               onTap: (nota) => provider.selezionaNota(nota),
               onEdit: (nota) => NoteActions.apriDialogNota(context, nota: nota),
               
-              // --- MODIFICA ANCHE QUI (Tablet) ---
-              onDelete: (index) => NoteActions.eliminaImmediatamente(context, index, mieNote[index].titolo),
+              // --- MODIFICA ANCHE QUI ---
+              onDelete: (index) => NoteActions.eliminaImmediatamente(context, mieNote[index]),
             ),
     );
   }

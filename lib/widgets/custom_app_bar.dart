@@ -1,32 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:task_list/providers/note_provider.dart';
 
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String title;
 
   const CustomAppBar({super.key, required this.title});
 
   @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  State<CustomAppBar> createState() => _CustomAppBarState();
+}
+
+class _CustomAppBarState extends State<CustomAppBar> {
+  // Variabile per sapere se la barra di ricerca è attiva
+  bool _isSearching = false; 
+  
+  // Controller per gestire il testo scritto
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose(); // Pulizia della memoria quando la barra viene distrutta
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      centerTitle: true,
-      title: Text(title),
+      // --- IL TITOLO CAMBIA DINAMICAMENTE ---
+      title: _isSearching
+          ? TextField(
+              controller: _searchController,
+              autofocus: true, // Appena apri, la tastiera sale subito
+              style: const TextStyle(color: Colors.black), 
+              decoration: const InputDecoration(
+                hintText: 'Cerca nota...', // Testo fantasma
+                border: InputBorder.none, // Nessuna riga sotto
+                hintStyle: TextStyle(color: Colors.grey),
+              ),
+              onChanged: (val) {
+                // Ogni volta che scrivi una lettera, avvisiamo il Provider!
+                context.read<NoteProvider>().cerca(val);
+              },
+            )
+          : Text(widget.title), // Se non cerco, mostro il titolo normale
+      
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.blueGrey[100],
-            backgroundImage: const NetworkImage(
-              'https://cdn.pixabay.com/photo/2025/08/23/12/07/portrait-9791880_960_720.png', // Un'immagine d'esempio
-            ),
-            // child: const Icon(Icons.person, size: 20, color: Colors.blueGrey),
-          ),
+        // --- IL BOTTONE A DESTRA ---
+        IconButton(
+          // L'icona cambia: Lente se chiusa, Croce se aperta
+          icon: Icon(_isSearching ? Icons.close : Icons.search),
+          onPressed: () {
+            setState(() {
+              if (_isSearching) {
+                // --- STO CHIUDENDO LA RICERCA ---
+                _isSearching = false;
+                _searchController.clear(); // Pulisco il testo visivo
+                context.read<NoteProvider>().cerca(""); // Resetto il filtro nel Provider (mostra tutto)
+              } else {
+                // --- STO APRENDO LA RICERCA ---
+                _isSearching = true;
+              }
+            });
+          },
         ),
       ],
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
