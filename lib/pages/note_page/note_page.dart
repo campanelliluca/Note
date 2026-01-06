@@ -6,7 +6,7 @@ import 'package:task_list/widgets/custom_drawer.dart';
 import 'package:task_list/pages/note_page/views/mobile_view.dart';
 import 'package:task_list/pages/note_page/views/tablet_view.dart';
 // Importiamo il nuovo file delle azioni
-import 'package:task_list/pages/note_page/actions/note_actions.dart';
+import 'package:task_list/actions/note_actions.dart';
 
 class NotePage extends StatefulWidget {
   const NotePage({super.key});
@@ -43,22 +43,26 @@ class _NotePageState extends State<NotePage> {
         onPressed: () => NoteActions.apriDialogNota(context),
         child: const Icon(Icons.add),
       ),
-      
+
       body: isMobile
           ? MobileView(
               note: mieNote,
-              // Le azioni sono delegate alla classe NoteActions
               onTap: (nota) => NoteActions.navigaAlDettaglioMobile(context, nota),
               onEdit: (nota) => NoteActions.apriDialogNota(context, nota: nota),
-              onDelete: (index) => NoteActions.confermaEliminazione(context, index, mieNote[index].titolo),
+              
+              // --- MODIFICA QUI ---
+              // Prima era: NoteActions.confermaEliminazione(...)
+              // Ora è:
+              onDelete: (index) => NoteActions.eliminaImmediatamente(context, index, mieNote[index].titolo),
             )
           : TabletView(
               note: mieNote,
               notaSelezionata: notaSelezionata,
-              // Per il tablet, la selezione rimane logica interna del Provider
               onTap: (nota) => provider.selezionaNota(nota),
               onEdit: (nota) => NoteActions.apriDialogNota(context, nota: nota),
-              onDelete: (index) => NoteActions.confermaEliminazione(context, index, mieNote[index].titolo),
+              
+              // --- MODIFICA ANCHE QUI (Tablet) ---
+              onDelete: (index) => NoteActions.eliminaImmediatamente(context, index, mieNote[index].titolo),
             ),
     );
   }

@@ -2,73 +2,83 @@ import 'package:flutter/material.dart';
 import 'package:task_list/models/nota.dart';
 import 'package:task_list/services/note_service.dart';
 
-// Estendiamo ChangeNotifier: permette a questo file di "notificare" la grafica quando i dati cambiano.
 class NoteProvider extends ChangeNotifier {
   final NoteService _noteService = NoteService();
   
-  // Dati privati (si usa il trattino basso _ per renderli privati)
   List<Nota> _note = [];
   Nota? _notaSelezionata;
 
-  // GETTERS: Servono per leggere i dati dall'esterno senza poterli sovrascrivere direttamente
+  // --- NUOVO: Variabili per la funzione "Annulla" ---
+  Nota? _ultimaNotaEliminata;     // Qui salviamo la nota appena cancellata
+  int? _ultimoIndiceEliminato;    // Qui salviamo la sua posizione (es. era la 3° nota)
+
+  // Getter per sapere se c'è una nota da ripristinare
+  bool get canUndo => _ultimaNotaEliminata != null;
+
   List<Nota> get note => _note;
   Nota? get notaSelezionata => _notaSelezionata;
 
-  // --- CARICAMENTO DATI ---
   Future<void> caricaNote() async {
     _note = await _noteService.caricaNote();
-    
-    // Se abbiamo delle note, selezioniamo la prima di default (utile per Tablet)
     if (_note.isNotEmpty) {
       _notaSelezionata = _note[0];
     }
-    
-    // IMPORTANTE: Avvisa la UI che i dati sono pronti!
     notifyListeners();
   }
 
-  // --- SELEZIONE NOTA (Per Tablet) ---
   void selezionaNota(Nota? nota) {
     _notaSelezionata = nota;
-    notifyListeners(); // Ridisegna per mostrare i dettagli della nota selezionata
+    notifyListeners();
   }
 
-  // --- AGGIUNTA O MODIFICA ---
   void salvaNota(Nota notaSalvata, {Nota? notaEsistente}) {
     if (notaEsistente == null) {
-      // È una nuova nota
       _note.add(notaSalvata);
-      _notaSelezionata = notaSalvata; // La selezioniamo subito
+      _notaSelezionata = notaSalvata;
     } else {
-      // È una modifica: aggiorniamo i campi della nota esistente
       notaEsistente.titolo = notaSalvata.titolo;
       notaEsistente.contenuto = notaSalvata.contenuto;
       notaEsistente.data = notaSalvata.data;
     }
-
-    // Salviamo su disco
     _noteService.salvaNote(_note);
-    
-    // Aggiorniamo la grafica
     notifyListeners();
   }
 
-  // --- ELIMINAZIONE ---
+  // --- MODIFICATO: Elimina con backup ---
   void eliminaNota(int index) {
+    // 1. Prima di eliminare, facciamo il backup!
+    _ultimaNotaEliminata = _note[index];
+    _ultimoIndiceEliminato = index;
+
+    // 2. Procediamo con l'eliminazione normale
     Nota daEliminare = _note[index];
     _note.removeAt(index);
 
-    // Gestione intelligente della selezione (se cancello quella che stavo guardando)
     if (_note.isEmpty) {
       _notaSelezionata = null;
     } else if (_notaSelezionata == daEliminare) {
-      _notaSelezionata = _note[0];
+      _notaSelezionata = _note.isNotEmpty ? _note[0] : null;
     }
 
-    // Salviamo su disco
     _noteService.salvaNote(_note);
-    
-    // Aggiorniamo la grafica
     notifyListeners();
+  }
+
+  // --- NUOVO: Funzione per ripristinare la nota ---
+  void ripristinaNota() {
+    // Controlliamo se abbiamo davvero qualcosa da ripristinare
+    if (_ultimaNotaEliminata != null && _ultimoIndiceEliminato != null) {
+      
+      // Reinseriamo la nota ESATTAMENTE dove era prima
+      _note.insert(_ultimoIndiceEliminato!, _ultimaNotaEliminata!);
+      
+      // Puliamo la memoria temporanea (non serve più)
+      _ultimaNotaEliminata = null;
+      _ultimoIndiceEliminato = null;
+
+      // Salviamo e aggiorniamo la UI
+      _noteService.salvaNote(_note);
+      notifyListeners();
+    }
   }
 }
