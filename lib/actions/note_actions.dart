@@ -29,7 +29,7 @@ class NoteActions {
     ScaffoldMessenger.of(context).clearSnackBars(); // Pulisce eventuali messaggi precedenti per evitare code
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 10),
         content: Row(
           children: [
             Expanded(
