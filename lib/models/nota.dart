@@ -1,3 +1,4 @@
+import 'dart:convert'; // Per jsonDecode
 class Nota {
   String titolo;
   String contenuto;
@@ -35,5 +36,55 @@ class Nota {
           ? DateTime.parse(json['dataCreazione']) 
           : null,
     );
+  }
+
+  // --- Metodo per generare il testo da condividere ---
+  // --- VERSIONE CON EMOJI ---
+  String getTestoCondivisibile() {
+    StringBuffer buffer = StringBuffer();
+    
+    // 1. Titolo in maiuscolo con spaziatura
+    buffer.writeln("📝 ${titolo.toUpperCase()}");
+    buffer.writeln("📅 $data"); // Aggiungiamo anche la data, è utile!
+    buffer.writeln("─────────────────"); // linea divisoria
+    buffer.writeln(""); // Una riga vuota per dare aria
+
+    if (isList) {
+      try {
+        List<dynamic> items = jsonDecode(contenuto);
+        int fatti = 0;
+
+        for (var item in items) {
+          bool isFatto = item['fatto'];
+          if (isFatto) fatti++;
+
+          // Usa le EMOJI invece delle parentesi!
+          // ✅ = Fatto
+          // ⬜ = Da fare (puoi usare anche ⭕ o 🔲)
+          // Se preferisci i simboli in bianco e nero, sostituisci "✅" con "☑" e "⬜" con "☐"
+          String check = isFatto ? "✅" : "⬜"; 
+          
+          buffer.writeln("$check ${item['testo']}");
+        }
+
+        // 3. Aggiunta statistiche a fondo pagina
+        buffer.writeln("");
+        buffer.writeln("─────────────────"); // linea divisoria
+        // Calcolo la percentuale o il numero
+        buffer.writeln("Completati: $fatti su ${items.length}");
+
+      } catch (e) {
+        buffer.writeln("Errore nella lettura della lista.");
+      }
+    } else {
+      // Testo semplice
+      buffer.writeln(contenuto);
+    }
+    
+    // Firma dell'app (opzionale, fa pubblicità alla tua app!)
+    buffer.writeln("\nInvito da TaskList App 🚀");
+    buffer.writeln("Scaricala qui: https://www.tuosito.com/download");
+
+    return buffer.toString();
   }
 }

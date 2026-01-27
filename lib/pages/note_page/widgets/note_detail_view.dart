@@ -1,6 +1,7 @@
-import 'dart:convert'; // Import necessario per leggere il JSON
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Importiamo provider per salvare le modifiche al volo
+import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart'; // <--- IMPORTANTE: Importiamo il pacchetto
 import 'package:task_list/models/nota.dart';
 import 'package:task_list/providers/note_provider.dart';
 import 'package:task_list/widgets/titolo_h1.dart';
@@ -17,24 +18,25 @@ class NoteDetailView extends StatefulWidget {
 }
 
 class _NoteDetailViewState extends State<NoteDetailView> {
-  // Funzione per aggiornare lo stato del checkbox
   void _toggleCheck(int index, List<dynamic> listaAttuale) {
     setState(() {
-      // 1. Invertiamo il valore 'fatto'
       listaAttuale[index]['fatto'] = !listaAttuale[index]['fatto'];
-      
-      // 2. Aggiorniamo la nota originale convertendo di nuovo in stringa
       widget.nota.contenuto = jsonEncode(listaAttuale);
-      
-      // 3. Chiamiamo il provider per salvare su disco le modifiche
-      // Usiamo listen: false perché siamo dentro una funzione
       context.read<NoteProvider>().salvaNota(widget.nota, notaEsistente: widget.nota);
     });
   }
 
+  // --- FUNZIONE PER CONDIVIDERE ---
+  void _condividiNota() {
+    // Usiamo il metodo "intelligente" che abbiamo creato nel Modello
+    String testoDaInviare = widget.nota.getTestoCondivisibile();
+    
+    // Apriamo il menu di condivisione nativo
+    Share.share(testoDaInviare);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Prepariamo il contenuto
     Widget contenutoWidget;
 
     if (widget.nota.isList) {
@@ -50,8 +52,8 @@ class _NoteDetailViewState extends State<NoteDetailView> {
         contenutoWidget = const Text("Lista vuota");
       } else {
         contenutoWidget = ListView.builder(
-          shrinkWrap: true, // Importante per stare dentro la colonna
-          physics: const NeverScrollableScrollPhysics(), // Evita doppio scroll
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: items.length,
           itemBuilder: (context, index) {
             final item = items[index];
@@ -67,14 +69,14 @@ class _NoteDetailViewState extends State<NoteDetailView> {
               ),
               value: isDone,
               onChanged: (val) => _toggleCheck(index, items),
-              controlAffinity: ListTileControlAffinity.leading, // Checkbox a sinistra
-              contentPadding: EdgeInsets.zero, // Meno spazio ai bordi
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
             );
           },
         );
       }
     } else {
-      // --- MODO TESTO NORMALE ---
+      // --- MODO TESTO ---
       contenutoWidget = InkWell(
         onTap: widget.onEdit,
         borderRadius: BorderRadius.circular(8),
@@ -95,21 +97,43 @@ class _NoteDetailViewState extends State<NoteDetailView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // TITOLO (Cliccabile per modifica)
-          InkWell(
-            onTap: widget.onEdit,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: TitoloH1(testo: widget.nota.titolo.isEmpty ? "Senza titolo" : widget.nota.titolo),
-            ),
+          
+          // --- RIGA TITOLO + CONDIVIDI ---
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start, // Allinea in alto se il titolo va a capo
+            children: [
+              // 1. IL TITOLO (Expanded prende tutto lo spazio rimasto)
+              Expanded(
+                child: InkWell(
+                  onTap: widget.onEdit,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: TitoloH1(testo: widget.nota.titolo.isEmpty ? "Senza titolo" : widget.nota.titolo),
+                  ),
+                ),
+              ),
+              
+              // 2. IL BOTTONE CONDIVIDI
+              IconButton(
+                icon: const Icon(Icons.share, color: Colors.blue), // Icona blu per risaltare
+                tooltip: 'Condividi nota',
+                onPressed: _condividiNota, // Chiama la funzione
+              ),
+            ],
           ),
+
           const SizedBox(height: 10),
-          Text(widget.nota.data, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          
+          // DATA
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text(widget.nota.data, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          ),
           
           const Divider(height: 40),
           
-          // CONTENUTO (Lista o Testo)
+          // CONTENUTO
           Expanded(
             child: SingleChildScrollView(
               child: contenutoWidget,
