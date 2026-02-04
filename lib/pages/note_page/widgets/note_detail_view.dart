@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart'; // <--- IMPORTANTE: Importiamo il pacchetto
 import 'package:task_list/models/nota.dart';
@@ -18,6 +21,8 @@ class NoteDetailView extends StatefulWidget {
 }
 
 class _NoteDetailViewState extends State<NoteDetailView> {
+  final ImagePicker _picker = ImagePicker();
+
   void _toggleCheck(int index, List<dynamic> listaAttuale) {
     setState(() {
       listaAttuale[index]['fatto'] = !listaAttuale[index]['fatto'];
@@ -33,6 +38,33 @@ class _NoteDetailViewState extends State<NoteDetailView> {
     
     // Apriamo il menu di condivisione nativo
     Share.share(testoDaInviare);
+  }
+
+  Future<void> _gestisciImmagine(ImageSource source) async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: source,
+        maxWidth: 1000,
+        imageQuality: 85,
+      );
+      
+      if (photo == null) return;
+      if (!mounted) return;
+
+      setState(() {
+        widget.nota.immaginePath = photo.path;
+      });
+      context.read<NoteProvider>().salvaNota(widget.nota, notaEsistente: widget.nota);
+    } catch (e) {
+      debugPrint("Errore immagine: $e");
+    }
+  }
+
+  void _rimuoviFoto() {
+    setState(() {
+      widget.nota.immaginePath = null;
+    });
+    context.read<NoteProvider>().salvaNota(widget.nota, notaEsistente: widget.nota);
   }
 
   @override
@@ -130,6 +162,54 @@ class _NoteDetailViewState extends State<NoteDetailView> {
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Text(widget.nota.data, style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ),
+
+          const SizedBox(height: 10),
+
+          // AREA FOTO
+          if (widget.nota.immaginePath != null && widget.nota.immaginePath!.isNotEmpty)
+            Stack(
+              alignment: Alignment.topRight,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: kIsWeb
+                      ? Image.network(
+                          widget.nota.immaginePath!,
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.file(
+                          File(widget.nota.immaginePath!),
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: _rimuoviFoto,
+                  style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.7)),
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => _gestisciImmagine(ImageSource.camera),
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Scatta Foto'),
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: () => _gestisciImmagine(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Carica Foto'),
+                ),
+              ],
+            ),
           
           const Divider(height: 40),
           

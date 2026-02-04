@@ -216,6 +216,7 @@ class _NotaDialogState extends State<NotaDialog> {
                 // Se stiamo modificando una nota vecchia che aveva già una dataCreazione, la manteniamo.
                 // Altrimenti usiamo ADESSO.
                 dataCreazione: widget.notaEsistente?.dataCreazione ?? DateTime.now(),
+                immaginePath: widget.notaEsistente?.immaginePath,
               );
               
               widget.onSave(nota);

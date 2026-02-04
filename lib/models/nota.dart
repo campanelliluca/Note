@@ -5,6 +5,7 @@ class Nota {
   String data;
   bool isList; // <--- Deve esserci questo
   DateTime? dataCreazione; // NUOVO: L'orario preciso per l'ordinamento!
+  String? immaginePath; // NUOVO: Percorso dell'immagine allegata
 
   Nota({
     required this.titolo, 
@@ -12,6 +13,7 @@ class Nota {
     required this.data,
     this.isList = false,
     this.dataCreazione, // Facoltativo (per le note vecchie che non ce l'hanno)
+    this.immaginePath,
   });
 
   Map<String, dynamic> toJson() {
@@ -22,6 +24,7 @@ class Nota {
       'isList': isList, // <--- IMPORTANTE: Se manca questo, salva sempre come testo!
       // Salviamo la data precisa come stringa ISO (es. 2026-01-06T19:30:00)
       'dataCreazione': dataCreazione?.toIso8601String(),
+      'immaginePath': immaginePath,
     };
   }
 
@@ -35,6 +38,7 @@ class Nota {
       dataCreazione: json['dataCreazione'] != null 
           ? DateTime.parse(json['dataCreazione']) 
           : null,
+      immaginePath: json['immaginePath'],
     );
   }
 
