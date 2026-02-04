@@ -43,11 +43,12 @@ class NoteListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Card(
-      // Usiamo una Card per dare un leggero rilievo e bordi arrotondati, sta meglio con l'anteprima
-      elevation: 0, // Puoi aumentare se vuoi l'ombra
-      color: isSelected ? Colors.blue.shade50 : Colors.white,
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Spazio tra le note
+      // Rimuoviamo elevation: 0 per usare quella del tema (2)
+      // Se selezionato usa un verde chiarissimo (primaryContainer), altrimenti bianco (default del tema)
+      color: isSelected ? theme.colorScheme.primaryContainer : null,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         onTap: onTap,
@@ -59,9 +60,10 @@ class NoteListTile extends StatelessWidget {
             Expanded(
               child: Text(
                 nota.titolo.isEmpty ? "Senza titolo" : nota.titolo,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: isSelected ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurface,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -73,7 +75,7 @@ class NoteListTile extends StatelessWidget {
             Text(
               nota.data,
               style: TextStyle(
-                color: Colors.grey[600],
+                color: isSelected ? theme.colorScheme.onPrimaryContainer.withOpacity(0.7) : theme.colorScheme.outline,
                 fontSize: 12,
               ),
             ),
@@ -88,7 +90,7 @@ class NoteListTile extends StatelessWidget {
             maxLines: 2, // Massimo 2 righe di anteprima
             overflow: TextOverflow.ellipsis, // Mette i puntini (...) se è troppo lungo
             style: TextStyle(
-              color: Colors.grey[800],
+              color: isSelected ? theme.colorScheme.onPrimaryContainer.withOpacity(0.8) : theme.colorScheme.onSurfaceVariant,
               height: 1.3, // Migliora la leggibilità
             ),
           ),
@@ -96,7 +98,7 @@ class NoteListTile extends StatelessWidget {
 
         // EDIT BUTTON (A destra)
         trailing: IconButton(
-          icon: const Icon(Icons.edit_outlined, color: Colors.blueGrey),
+          icon: Icon(Icons.edit_outlined, color: isSelected ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.primary),
           onPressed: onEdit,
         ),
       ),

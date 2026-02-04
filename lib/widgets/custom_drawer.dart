@@ -18,19 +18,21 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Drawer(
       child: Column(
         children: [
           // INTESTAZIONE (Header)
-          const UserAccountsDrawerHeader(
-            accountName: Text("Studente Flutter"),
-            accountEmail: Text("studente@example.com"),
-            currentAccountPicture: CircleAvatar(
+          UserAccountsDrawerHeader(
+            accountName: const Text("Studente Flutter"),
+            accountEmail: const Text("studente@example.com"),
+            currentAccountPicture: const CircleAvatar(
               backgroundImage: NetworkImage(
                   'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png'),
             ),
             decoration: BoxDecoration(
-              color: Colors.blueGrey,
+              color: theme.colorScheme.primary, // Usa il Verde Salvia
             ),
           ),
           
@@ -47,7 +49,7 @@ class CustomDrawer extends StatelessWidget {
           
           // VOCE 2: Link esterno (NUOVO)
           ListTile(
-            leading: const Icon(Icons.language, color: Colors.blue),
+            leading: Icon(Icons.language, color: theme.colorScheme.primary), // Icona verde
             title: const Text("Visita il sito ufficiale"),
             subtitle: const Text("flutter.dev"),
             onTap: () {
