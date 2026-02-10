@@ -1,4 +1,6 @@
 import 'dart:convert'; // Necessario per decodificare la lista JSON
+import 'dart:io'; // Import necessario per gestire i file locali
+import 'package:flutter/foundation.dart' show kIsWeb; // Import per la verifica della piattaforma Web
 import 'package:flutter/material.dart';
 import 'package:task_list/models/nota.dart';
 
@@ -53,6 +55,36 @@ class NoteListTile extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         onTap: onTap,
         
+        // LEADING: Mostra la miniatura dell'immagine o un'icona di default
+        leading: (nota.immaginePath != null && nota.immaginePath!.isNotEmpty)
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(8), // Arrotonda gli angoli
+                child: SizedBox(
+                  width: 50,
+                  height: 50,
+                  // Se siamo su Web usa Image.network, altrimenti Image.file
+                  child: kIsWeb
+                      ? Image.network(
+                          nota.immaginePath!,
+                          fit: BoxFit.cover, // Copre l'intero spazio disponibile
+                        )
+                      : Image.file(
+                          File(nota.immaginePath!),
+                          fit: BoxFit.cover,
+                        ),
+                ),
+              )
+            : Container(
+                // Placeholder se l'immagine non è presente
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceVariant, // Sfondo neutro dal tema
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.note, color: theme.colorScheme.onSurfaceVariant),
+              ),
+
         // TITOLO + DATA (Sulla stessa riga)
         title: Row(
           children: [
